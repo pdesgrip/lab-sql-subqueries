@@ -47,15 +47,42 @@ WHERE c.address_id IN
         FROM sakila.city ci
         WHERE ci.country_id = (SELECT country_id FROM sakila.country WHERE country = 'Canada')));
         
--- Join
 
-SELECT c.first_name, c.email
-FROM sakila.customer c
-JOIN sakila.address a ON c.address_id = a.address_id
-JOIN sakila.city ci ON a.city_id = ci.city_id
-JOIN sakila.country co ON ci.country_id = co.country_id
-WHERE co.country = 'Canada';
+-- Most prolific actor
 
+
+SELECT a.first_name, a.last_name, COUNT(fa.actor_id) AS num_films
+FROM sakila.actor a
+JOIN sakila.film_actor fa ON a.actor_id = fa.actor_id
+GROUP BY a.actor_id
+ORDER BY num_films DESC
+LIMIT 1;
+
+-- Films with the most prolific actor
+
+SELECT f.title FROM sakila.film f WHERE f.film_id IN (SELECT fa.film_id
+    FROM sakila.film_actor fa
+    WHERE fa.actor_id = 
+    (SELECT actor_id FROM sakila.film_actor
+	GROUP BY actor_id
+    ORDER BY COUNT(*) DESC
+    LIMIT 1));
+    
+-- Films rented by most profitable customer    
+    
+SELECT f.title
+FROM sakila.film f
+JOIN sakila.inventory i ON f.film_id = i.film_id
+JOIN sakila.rental r ON i.inventory_id = r.inventory_id
+WHERE r.customer_id = (SELECT customer_id FROM sakila.payment GROUP BY customer_id ORDER BY SUM(amount) DESC LIMIT 1);
+
+-- Client IDs and amounts that clients spend more when more than the average.
+
+SELECT p.customer_id, SUM(p.amount) AS total_amount_spent
+FROM sakila.payment p
+GROUP BY p.customer_id
+HAVING total_amount_spent > (SELECT AVG(total) FROM (SELECT SUM(amount) AS total FROM sakila.payment
+GROUP BY customer_id) AS sub);
 
         
 
